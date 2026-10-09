@@ -8,3 +8,8 @@
 
 # Рабочее состояние агента не публикуется
 product/workspace/
+product_v2/workspace/
+product_v3/workspace/
+
+# Python кэш
+__pycache__/

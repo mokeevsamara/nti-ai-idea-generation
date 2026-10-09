@@ -1,11 +1,21 @@
 # -*- coding: utf-8 -*-
-"""Yandex Search API v2 — рабочий рецепт вызова (пилот барьерной карты, 08.10.2026).
+"""Yandex Search API v2 — отчуждаемый рецепт вызова (пилот барьерной карты, 08.10.2026).
+
+Основной поисковый механизм глубокого поиска Шага 0 (см. product/instructions/deep-research.md).
 
 Эндпоинт: https://searchapi.api.cloud.yandex.net/v2/web/search
-Ключ и folderId НЕ хранятся в репозитории (публичный): берутся из окружения
-YANDEX_SEARCH_API_KEY / YANDEX_FOLDER_ID либо читаются из ~/.zcode/cli/config.json
-(блок mcp-сервера yandex-search).
-Особенности:
+Ключ и folderId НЕ хранятся в репозитории (публичный): только переменные окружения
+YANDEX_SEARCH_API_KEY / YANDEX_FOLDER_ID.
+Как получить ключ (организатору, ~10 минут):
+  1. Аккаунт Yandex Cloud (console.cloud.yandex.ru), создать платёжный аккаунт
+     С ПРИВЯЗАННОЙ КАРТОЙ в момент создания — иначе не будет стартового гранта
+     (4 000 ₽ физлицу / 10 000 ₽ юрлицу, 60 дней; Search API грантом оплачивается).
+  2. Создать каталог (folder) — его id = folder_id.
+  3. В сервисе Yandex Search API подключить поиск к каталогу (постpay).
+  4. Создать сервисный аккаунт → API-ключ с ролью search-api.executor.
+  5. Задать окружение: YANDEX_SEARCH_API_KEY, YANDEX_FOLDER_ID.
+Стоимость: ~488 ₽ за 1000 запросов вкл. НДС; прогон Шага 0 (40–60 запросов) ≈ 15–30 ₽.
+Особенности вызова:
   - тело строго UTF-8 (curl из Git Bash ломает кириллицу — использовать python);
   - ответ: {"rawData": "<base64 XML>"} — декодировать;
   - между вызовами пауза ~10 с (иначе rate limit / сброс соединения);
@@ -17,29 +27,23 @@ URL = "https://searchapi.api.cloud.yandex.net/v2/web/search"
 
 
 def _credentials():
-    """Ключ и folderId: окружение, иначе ~/.zcode/cli/config.json."""
+    """Ключ и folderId — только из окружения (без локальных конфигов)."""
     api_key = os.getenv("YANDEX_SEARCH_API_KEY")
     folder_id = os.getenv("YANDEX_FOLDER_ID")
-    if api_key and folder_id:
-        return api_key, folder_id
-    cfg_path = os.path.expanduser("~/.zcode/cli/config.json")
-    with open(cfg_path, encoding="utf-8") as f:
-        cfg = json.load(f)
-    # блок yandex-search может лежать на разной глубине — ищем рекурсивно
-    def find(d):
-        if isinstance(d, dict):
-            if "yandex-search" in d and isinstance(d["yandex-search"], dict):
-                env = d["yandex-search"].get("env", {})
-                return env.get("YANDEX_SEARCH_API_KEY"), env.get("YANDEX_FOLDER_ID")
-            for v in d.values():
-                r = find(v)
-                if r:
-                    return r
-        return None
-    r = find(cfg)
-    if not r or not r[0]:
-        raise RuntimeError("Нет ключа: задайте YANDEX_SEARCH_API_KEY/YANDEX_FOLDER_ID в окружении")
-    return r
+    if not api_key or not folder_id:
+        raise RuntimeError(
+            "Нет ключа: задайте YANDEX_SEARCH_API_KEY / YANDEX_FOLDER_ID "
+            "в окружении (инструкция в шапке файла)"
+        )
+    return api_key, folder_id
+
+
+def smoke_test():
+    """Проверочный вызов ключа перед сбором: один дешёвый вызов. True — ключ работает."""
+    try:
+        return bool(ysearch("тест", n=1))
+    except Exception:
+        return False
 
 
 API_KEY, FOLDER_ID = _credentials()
