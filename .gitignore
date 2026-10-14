@@ -1,8 +1,9 @@
-# Публикуются отчуждаемые пакеты: product/ (v1 с артефактами пилота), product_v2/ (чистая поставка), product_minimal/ (чат-промпты)
+# Публикуются отчуждаемые пакеты: product/ (v1 с артефактами пилота), product_v2/ (чистая поставка), product_minimal/ (чат-промпты), README (методика)
 /*
 !/product/
 !/product_v2/
 !/product_minimal/
+!/README.md
 
 # Системное
 **/.DS_Store
